@@ -1,7 +1,7 @@
 #!/bin/bash -eu
 
 ################################################################################################################################
-#- Purpose: Script is used to deploy the hellow-world image an Azure Virtual Machine
+#- Purpose: Script is used to deploy the mcr.microsoft.com/dotnet/core/samples:aspnetapp image an Azure Virtual Machine
 #- Parameters are:
 #- [-d] Docker Image Name - Docker Image Name
 #- [-v] Virtual Machine Username - Virtual Machine Username
@@ -10,7 +10,7 @@
 #- [-d] Key Install Script Directory - Directory where the ssh-key-install.sh script resides
 ################################################################################################################################
 
-containerName="hello-world"
+containerName="aspnetcoreapp"
 keyVaultSecretName="vm-private-key"
 
 # Loop, get parameters & remove any spaces from input
@@ -18,7 +18,7 @@ while getopts "a:v:i:k:d:" opt; do
     case $opt in
         a)
             # Docker Image
-            dockerImage=${OPTARG// /}
+            dockerImageName=${OPTARG// /}
         ;;
         v)
             # Virtual Machine Username
@@ -44,7 +44,7 @@ while getopts "a:v:i:k:d:" opt; do
 done
 
 # If user did not provide required parameters then shoaciName usage.
-if [[ $# -eq 0 || -z $dockerImage || -z $vmUsername || -z $vmIPAddress || -z $keyVaultName || -z $keyInstallScriptDirectory ]]; then
+if [[ $# -eq 0 || -z $dockerImageName || -z $vmUsername || -z $vmIPAddress || -z $keyVaultName || -z $keyInstallScriptDirectory ]]; then
     echo "Parameters missing! Required parameters are:  [-d] Docker Image Name [-v] VM Username [-i] VM Password [-k] Key Vault Name [d] Key Install Script Directory"
     exit 1; 
 fi
@@ -56,18 +56,18 @@ chmod +x $keyInstallScriptDirectory/ssh-key-install.sh
 
 # pulling image
 echo "Pulling latest image..."
-docker -H ssh://$vmUsername@$vmIPAddress pull $dockerImage
+docker -H ssh://$vmUsername@$vmIPAddress pull $dockerImageName
 
 # check to see if container is running attempting to stop existing container
 if docker -H ssh://$vmUsername@$vmIPAddress ps -a --format '{{.Names}}' | grep -Eq "^${containerName}\$"; then
-  echo "Stopping the current container..."
-  docker -H ssh://$vmUsername@$vmIPAddress stop $containerName
-  docker -H ssh://$vmUsername@$vmIPAddress rm $containerName
+ echo "Stopping the current container..."
+ docker -H ssh://$vmUsername@$vmIPAddress stop $containerName
+ docker -H ssh://$vmUsername@$vmIPAddress rm $containerName
 fi
 
 # run new container
 echo "Starting new containers..."
-docker -H ssh://$vmUsername@$vmIPAddress run -d $dockerImageName
+docker -H ssh://$vmUsername@$vmIPAddress run --name $containerName -d -p 8000:80 $dockerImageName
 
 # check to see if new container is running
 if ! docker -H ssh://$vmUsername@$vmIPAddress ps -a --format '{{.Names}}' | grep -Eq "^${containerName}\$"; then

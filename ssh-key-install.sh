@@ -37,8 +37,10 @@ if [[ $# -eq 0 || -z $keyVaultName || -z $vmIPAddress || -z $keyVaultSecretName 
 fi
 
 # retrieve private key and save to build agent
-echo $(az keyvault secret show -n $keyVaultSecretName --vault-name $keyVaultName --query 'value' --output tsv) | base64 --decode > id_rsa
+echo "Retrieve key"
+echo $(az keyvault secret show -n $keyVaultSecretName --vault-name $keyVaultName --query 'value' --output tsv) | base64 -di > id_rsa
 
+echo "Set folder permissions"
 # set proper permissions directory and files
 chmod 700 .
 chmod 600 *
